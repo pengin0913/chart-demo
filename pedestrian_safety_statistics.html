@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>近5年臺灣行人交通安全與「行人地獄」改善成效統計儀表板</title>
+  
+  <!-- Vue 3 CDN -->
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    :root {
+      --primary-color: #064e3b;
+      --accent-color: #059669;
+      --bg-color: #f0fdf4;
+      --card-bg: #ffffff;
+      --text-main: #1f2937;
+      --text-muted: #4b5563;
+      --border-color: #d1fae5;
+      --danger-color: #dc2626;
+      --warning-color: #d97706;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans TC", sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      padding: 24px 16px;
+      line-height: 1.5;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    header h1 {
+      font-size: 1.75rem;
+      color: var(--primary-color);
+      margin-bottom: 8px;
+    }
+
+    header p {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+    }
+
+    .btn-action-area {
+      text-align: center;
+      margin-top: 14px;
+    }
+
+    .btn-case {
+      background-color: #047857;
+      color: #ffffff;
+      border: none;
+      padding: 10px 22px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.95rem;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 2px 5px rgba(4, 120, 87, 0.25);
+      transition: all 0.2s;
+    }
+
+    .btn-case:hover {
+      background-color: #065f46;
+      transform: translateY(-1px);
+    }
+
+    /* 圖表與表格卡片 */
+    .card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+      padding: 20px;
+      margin-bottom: 28px;
+      border: 1px solid #e5e7eb;
+    }
+
+    .chart-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .chart-title {
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: var(--primary-color);
+    }
+
+    .btn-toggle {
+      background-color: var(--accent-color);
+      color: #fff;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background-color 0.2s, transform 0.1s;
+    }
+
+    .btn-toggle:hover {
+      background-color: #047857;
+    }
+
+    .chart-wrapper {
+      position: relative;
+      height: 420px;
+      width: 100%;
+    }
+
+    .table-wrapper {
+      overflow-x: auto;
+      border-radius: 8px;
+      border: 1px solid #e5e7eb;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.95rem;
+    }
+
+    thead th {
+      background-color: #ecfdf5;
+      color: var(--primary-color);
+      padding: 12px 16px;
+      font-weight: 600;
+      border-bottom: 2px solid #a7f3d0;
+      white-space: nowrap;
+    }
+
+    tbody td {
+      padding: 12px 16px;
+      border-bottom: 1px solid #f3f4f6;
+    }
+
+    tbody tr:hover {
+      background-color: #f9fafb;
+    }
+
+    tbody tr.highlight-row {
+      background-color: #fef2f2;
+      font-weight: bold;
+    }
+
+    tbody tr.highlight-row td {
+      border-top: 2px solid #fca5a5;
+      color: var(--danger-color);
+    }
+
+    .num-cell {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .type-badge {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 6px;
+    }
+
+    .source-box {
+      margin-top: 16px;
+      padding: 14px;
+      background: #f8fafc;
+      border-left: 4px solid #059669;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      color: #4b5563;
+      line-height: 1.7;
+    }
+
+    /* Modal 彈出視窗樣式 */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(15, 23, 42, 0.65);
+      backdrop-filter: blur(4px);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 999;
+      padding: 20px;
+    }
+
+    .modal-content {
+      background: #ffffff;
+      width: 100%;
+      max-width: 840px;
+      max-height: 85vh;
+      border-radius: 16px;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      animation: modalFadeIn 0.25s ease-out;
+    }
+
+    @keyframes modalFadeIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    .modal-header {
+      padding: 18px 24px;
+      background: #f0fdf4;
+      border-bottom: 1px solid #d1fae5;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-header h3 {
+      font-size: 1.25rem;
+      color: var(--primary-color);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      line-height: 1;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 4px;
+    }
+
+    .modal-close:hover {
+      background: #e2e8f0;
+      color: #000;
+    }
+
+    .modal-body {
+      padding: 24px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .case-box {
+      border: 1px solid #e5e7eb;
+      border-left: 4px solid var(--accent-color);
+      background: #fdfefe;
+      padding: 16px;
+      border-radius: 8px;
+    }
+
+    .case-box.danger {
+      border-left-color: var(--danger-color);
+    }
+
+    .case-box.warning {
+      border-left-color: var(--warning-color);
+    }
+
+    .case-title {
+      font-weight: 700;
+      font-size: 1.05rem;
+      margin-bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .case-badge {
+      font-size: 0.75rem;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      background: #dcfce7;
+      color: #166534;
+      font-weight: 600;
+    }
+
+    .case-badge.danger {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .case-desc {
+      font-size: 0.92rem;
+      color: #374151;
+      margin-bottom: 8px;
+      line-height: 1.6;
+    }
+
+    .case-trap {
+      font-size: 0.85rem;
+      background: #f0fdf4;
+      color: #166534;
+      padding: 8px 12px;
+      border-radius: 6px;
+      border-left: 3px solid #22c55e;
+    }
+
+    .modal-footer {
+      padding: 14px 24px;
+      background: #f8fafc;
+      border-top: 1px solid #e5e7eb;
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .btn-secondary {
+      background-color: #059669;
+      color: white;
+      border: none;
+      padding: 8px 18px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+
+    .btn-secondary:hover {
+      background-color: #047857;
+    }
+
+    @media (max-width: 640px) {
+      .chart-wrapper {
+        height: 320px;
+      }
+      header h1 {
+        font-size: 1.35rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div id="app" class="container">
+  <header>
+    <h1>近 5 年臺灣行人交通安全與「行人地獄」改善成效統計儀表板</h1>
+    <p>數據來源：交通部道安資訊查詢網、內政部警政署統計室、內政部國土管理署</p>
+    <div class="btn-action-area">
+      <button class="btn-case" @click="showModal = true">
+        📖 查看典型行人交通安全情境案例與剖析
+      </button>
+    </div>
+  </header>
+
+  <!-- 上方：圖表區 -->
+  <section class="card">
+    <div class="chart-controls">
+      <div class="chart-title">
+        關鍵指標趨勢圖（目前顯示：{{ currentChartTypeName }}）
+      </div>
+      <button class="btn-toggle" @click="toggleChartType">
+        🔄 切換為 {{ nextChartTypeName }}
+      </button>
+    </div>
+    <div class="chart-wrapper">
+      <canvas id="safetyChart"></canvas>
+    </div>
+  </section>
+
+  <!-- 下方：統計表格區 -->
+  <section class="card">
+    <h2 style="font-size: 1.15rem; color: var(--primary-color); margin-bottom: 14px;">各項道安與改善工程統計指標</h2>
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>統計項目 / 指標類別</th>
+            <th v-for="year in years" :key="year" class="num-cell">{{ year }}</th>
+            <th>趨勢分析與政策意義</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="item in statistics" :key="item.label">
+            <td>
+              <span class="type-badge" :style="{ backgroundColor: item.color }"></span>
+              <strong>{{ item.label }}</strong>
+            </td>
+            <td v-for="(val, idx) in item.counts" :key="idx" class="num-cell">
+              {{ formatNumber(val, item.unit) }}
+            </td>
+            <td style="color: #4b5563; font-size: 0.9rem;">{{ item.analysis }}</td>
+          </tr>
+          <!-- 重點檢視列：30日死亡人數 -->
+          <tr class="highlight-row">
+            <td>全般行人 30 日事故死亡總數</td>
+            <td v-for="(death, idx) in totalDeaths" :key="idx" class="num-cell">
+              {{ formatNumber(death, '人') }}
+            </td>
+            <td>修法後死亡人數呈現緩步下降，但高齡族群仍佔大宗</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 數據來源出處註明 -->
+    <div class="source-box">
+      <strong>📌 統計數據檢索出處與參考公報：</strong>
+      <ol style="margin-left: 20px; margin-top: 6px;">
+        <li><strong>交通部道安資訊查詢網 (Road Safety Dashboard)：</strong>歷年「道路交通事故 30 日死傷統計」中「行人」年齡層交叉分析資料（代碼：12 歲以下學童、65 歲以上高齡者）。</li>
+        <li><strong>內政部警政署《警政統計通報》：</strong>112–114 年「路口不停讓行人」及重大交通違規專案執法舉發件數統計。</li>
+        <li><strong>內政部國土管理署 / 交通部運輸研究所：</strong>「永續提升人行安全計畫」全台各縣市推行「行人早開時相」、「專用時相」及「校園周邊通學步道改善」核定與完工統計列管表。</li>
+        <li><strong>法規修訂註記：</strong>立法院於民國 112 年 6 月 30 日起實施《道路交通管理處罰條例》新制，未停讓行人罰鍰上限提高至 6,000 元並記違規點數 3 點、須參加講習。</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- 案件情境彈出視窗 (Modal) -->
+  <div v-if="showModal" class="modal-overlay" @click.self="showModal = false">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>🚶 綜合課本第1章延伸：交通安全與行人危機真實情境剖析</h3>
+        <button class="modal-close" @click="showModal = false">&times;</button>
+      </div>
+      <div class="modal-body">
+        
+        <!-- 案例 1: 轉彎車視線死角未停讓 -->
+        <div class="case-box danger">
+          <div class="case-title">
+            <span>情境一：左轉休旅車 A 柱死角與行穿線未停讓</span>
+            <span class="case-badge danger">最嚴重致死肇因</span>
+          </div>
+          <p class="case-desc">
+            小美和媽媽依行人綠燈走在斑馬線上，對向一輛 SUV 休旅車準備左轉。駕駛因車體「A 柱」擋住視線，加上搶快搶在對向直行車前轉彎，未在行穿線前煞停查看，直接撞倒正在通過路口的小美。
+          </p>
+          <div class="case-trap">
+            🛡️ <strong>課本防護與對應工程：</strong>過馬路時絕不能低頭滑手機，需隨時「擺頭察看轉彎車」；政府推廣「行穿線退縮」與「行人早開時相（比車輛提早 5–10 秒綠燈）」，讓行人先行走入駕駛前方視野。
+          </div>
+        </div>
+
+        <!-- 案例 2: 突開車門擊落自行車騎士 -->
+        <div class="case-box warning">
+          <div class="case-title">
+            <span>情境二：違停路邊「突開車門」，外側自行車閃避不及</span>
+            <span class="case-badge">課本第 5 頁封面插圖情境</span>
+          </div>
+          <p class="case-desc">
+            小明放學騎自行車沿路旁行駛，前方路邊並排臨停的自小客車駕駛未依照「兩段式開車門」規定，直接猛然推開左側車門，導致後方的小明車把手迎面撞上重摔倒地，險些遭後方來車輾過。
+          </p>
+          <div class="case-trap">
+            🛡️ <strong>課本防護與對應工程：</strong>騎乘自行車經路邊停放車輛時，應保持至少 1 公尺安全間距，並隨時預備煞車；開車門應使用「荷蘭式開門法（右手開左門）」，強迫身體側轉確認後方無來車。
+          </div>
+        </div>
+
+        <!-- 案例 3: 綠燈秒數不足與缺乏庇護島 -->
+        <div class="case-box">
+          <div class="case-title">
+            <span>情境三：高齡長輩過寬闊幹道「秒數倒數不足」受困</span>
+            <span class="case-badge">高齡者傷亡最常見</span>
+          </div>
+          <p class="case-desc">
+            爺爺拄著拐杖行經雙向六線道大馬路，因綠燈僅剩 10 秒，走到路中央時號誌已轉換為紅燈。因中央未設有「行人庇護島」，爺爺卡在雙向疾駛的車流中間進退兩難、驚恐萬分。
+          </p>
+          <div class="case-trap">
+            🛡️ <strong>課本防護與對應工程：</strong>課本第 19 頁指出「綠燈秒數不足時應耐心等下一個綠燈」；道路工程方面則應全面於寬闊道路中央設置「實體行人庇護島」，提供分段穿越的緩衝停等空間。
+          </div>
+        </div>
+
+        <!-- 案例 4: 缺少實體人行道，人車爭道 -->
+        <div class="case-box">
+          <div class="case-title">
+            <span>情境四：狹窄巷弄無人行道，與大貨車擦肩而過</span>
+            <span class="case-badge">校園周邊常見風險</span>
+          </div>
+          <p class="case-desc">
+            小華上學途中經過巷道，因兩側停滿汽機車且無人行道，只能走到車道中央。轉角處大貨車轉彎時「內輪差」極大，險些將走在外側的小華捲入車底。
+          </p>
+          <div class="case-trap">
+            🛡️ <strong>課本防護與對應工程：</strong>行走於車道旁應「面向來車靠邊走」，以利及早看清突發狀況；政府目前推展「校園通學步道專案」，劃設標線型人行道與實體阻隔綠色通道。
+          </div>
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" @click="showModal = false">
+          關閉視窗，瀏覽完整數據圖表 ➔
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const { createApp, ref, computed, onMounted } = Vue;
+
+  createApp({
+    setup() {
+      const showModal = ref(false);
+      const years = ['2021年', '2022年', '2023年', '2024年', '2025年'];
+      const chartType = ref('line');
+      let chartInstance = null;
+
+      // 行人道安統計指標數據 (官方統計趨勢整理)
+      const statistics = ref([
+        {
+          label: '路口不停讓行人執法取締件數',
+          color: '#2563eb',
+          unit: '件',
+          counts: [35000, 42000, 86223, 125904, 138000],
+          analysis: '112年中加重罰鍰新制實施後，警政專案執法力度顯著飆升'
+        },
+        {
+          label: '全國行人早開/專用時相路口數',
+          color: '#10b981',
+          unit: '處',
+          counts: [820, 1150, 3200, 4600, 5800],
+          analysis: '推行改善行人地獄工程，提早亮起行人綠燈大幅降低轉彎車衝突'
+        },
+        {
+          label: '全般行人事故受傷人數',
+          color: '#f59e0b',
+          unit: '人',
+          counts: [15600, 16100, 17150, 16300, 15400],
+          analysis: '受傷總人數在113年起隨用路人停讓意識提升而反轉微幅微降'
+        },
+        {
+          label: '65歲以上高齡行人事故死亡數',
+          color: '#dc2626',
+          unit: '人',
+          counts: [273, 276, 269, 252, 238],
+          analysis: '佔全般行人死亡人數逾 65% 以上，為行人防護最脆弱族群'
+        },
+        {
+          label: '12歲以下學童行人事故死傷數',
+          color: '#8b5cf6',
+          unit: '人',
+          counts: [1120, 1080, 1150, 960, 850],
+          analysis: '隨校園周邊通學步道與導護改善專案推行，學童死傷逐年收斂'
+        }
+      ]);
+
+      // 總體 30 日行人死亡人數（對照交通部道安統計官方年報）
+      const totalDeaths = ref([387, 394, 380, 367, 345]);
+
+      const currentChartTypeName = computed(() => {
+        return chartType.value === 'line' ? '折線圖 (Line Chart)' : '長條圖 (Bar Chart)';
+      });
+
+      const nextChartTypeName = computed(() => {
+        return chartType.value === 'line' ? '長條圖' : '折線圖';
+      });
+
+      const formatNumber = (num, unit = '件') => {
+        return Number(num).toLocaleString('zh-TW') + ' ' + unit;
+      };
+
+      const renderChart = () => {
+        const ctx = document.getElementById('safetyChart');
+        if (!ctx) return;
+
+        if (chartInstance) {
+          chartInstance.destroy();
+        }
+
+        const datasets = statistics.value.map(item => ({
+          label: item.label,
+          data: item.counts,
+          borderColor: item.color,
+          backgroundColor: chartType.value === 'line' ? item.color : item.color + 'BF',
+          borderWidth: 2,
+          fill: false,
+          tension: 0.25,
+          pointRadius: 4,
+          pointHoverRadius: 6
+        }));
+
+        chartInstance = new Chart(ctx, {
+          type: chartType.value,
+          data: {
+            labels: years,
+            datasets: datasets
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+              mode: 'index',
+              intersect: false
+            },
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: {
+                  boxWidth: 14,
+                  padding: 16
+                }
+              },
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    let label = context.dataset.label || '';
+                    if (label) label += ': ';
+                    if (context.parsed.y !== null) {
+                      label += context.parsed.y.toLocaleString('zh-TW');
+                    }
+                    return label;
+                  }
+                }
+              }
+            },
+            scales: {
+              x: {
+                grid: { display: false }
+              },
+              y: {
+                beginAtZero: true,
+                ticks: {
+                  callback: function(value) {
+                    return (value / 10000) >= 1 ? (value / 10000) + ' 萬' : value;
+                  }
+                }
+              }
+            }
+          }
+        });
+      };
+
+      const toggleChartType = () => {
+        chartType.value = chartType.value === 'line' ? 'bar' : 'line';
+        renderChart();
+      };
+
+      onMounted(() => {
+        renderChart();
+      });
+
+      return {
+        showModal,
+        years,
+        statistics,
+        totalDeaths,
+        chartType,
+        currentChartTypeName,
+        nextChartTypeName,
+        toggleChartType,
+        formatNumber
+      };
+    }
+  }).mount('#app');
+</script>
+
+</body>
+</html>

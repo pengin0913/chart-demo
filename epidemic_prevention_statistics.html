@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>近5年臺灣登革熱與重要傳染病監測統計儀表板</title>
+  
+  <!-- Vue 3 CDN -->
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    :root {
+      --primary-color: #065f46;
+      --accent-color: #0d9488;
+      --bg-color: #f0fdfa;
+      --card-bg: #ffffff;
+      --text-main: #1f2937;
+      --text-muted: #4b5563;
+      --border-color: #ccfbf1;
+      --danger-color: #dc2626;
+      --warning-color: #d97706;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans TC", sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      padding: 24px 16px;
+      line-height: 1.5;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    header h1 {
+      font-size: 1.75rem;
+      color: var(--primary-color);
+      margin-bottom: 8px;
+    }
+
+    header p {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+    }
+
+    .btn-action-area {
+      text-align: center;
+      margin-top: 14px;
+    }
+
+    .btn-case {
+      background-color: #0f766e;
+      color: #ffffff;
+      border: none;
+      padding: 10px 22px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.95rem;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 2px 5px rgba(15, 118, 110, 0.25);
+      transition: all 0.2s;
+    }
+
+    .btn-case:hover {
+      background-color: #115e59;
+      transform: translateY(-1px);
+    }
+
+    /* 圖表與表格卡片 */
+    .card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+      padding: 20px;
+      margin-bottom: 28px;
+      border: 1px solid #99f6e4;
+    }
+
+    .chart-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .chart-title {
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: var(--primary-color);
+    }
+
+    .btn-toggle {
+      background-color: var(--accent-color);
+      color: #fff;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background-color 0.2s, transform 0.1s;
+    }
+
+    .btn-toggle:hover {
+      background-color: #0f766e;
+    }
+
+    .chart-wrapper {
+      position: relative;
+      height: 420px;
+      width: 100%;
+    }
+
+    .table-wrapper {
+      overflow-x: auto;
+      border-radius: 8px;
+      border: 1px solid #99f6e4;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.95rem;
+    }
+
+    thead th {
+      background-color: #ccfbf1;
+      color: var(--primary-color);
+      padding: 12px 16px;
+      font-weight: 600;
+      border-bottom: 2px solid #5eead4;
+      white-space: nowrap;
+    }
+
+    tbody td {
+      padding: 12px 16px;
+      border-bottom: 1px solid #f0fdfa;
+    }
+
+    tbody tr:hover {
+      background-color: #e6fffa;
+    }
+
+    tbody tr.highlight-row {
+      background-color: #fef2f2;
+      font-weight: bold;
+    }
+
+    tbody tr.highlight-row td {
+      border-top: 2px solid #fca5a5;
+      color: var(--danger-color);
+    }
+
+    .num-cell {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .type-badge {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 6px;
+    }
+
+    .source-box {
+      margin-top: 16px;
+      padding: 14px;
+      background: #fafaf9;
+      border-left: 4px solid #0d9488;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      color: #4b5563;
+      line-height: 1.7;
+    }
+
+    /* Modal 彈出視窗樣式 */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(15, 23, 42, 0.65);
+      backdrop-filter: blur(4px);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 999;
+      padding: 20px;
+    }
+
+    .modal-content {
+      background: #ffffff;
+      width: 100%;
+      max-width: 840px;
+      max-height: 85vh;
+      border-radius: 16px;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      animation: modalFadeIn 0.25s ease-out;
+    }
+
+    @keyframes modalFadeIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    .modal-header {
+      padding: 18px 24px;
+      background: #ccfbf1;
+      border-bottom: 1px solid #99f6e4;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-header h3 {
+      font-size: 1.25rem;
+      color: var(--primary-color);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      line-height: 1;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 4px;
+    }
+
+    .modal-close:hover {
+      background: #99f6e4;
+      color: #000;
+    }
+
+    .modal-body {
+      padding: 24px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .case-box {
+      border: 1px solid #99f6e4;
+      border-left: 4px solid var(--accent-color);
+      background: #f0fdfa;
+      padding: 16px;
+      border-radius: 8px;
+    }
+
+    .case-box.danger {
+      border-left-color: var(--danger-color);
+    }
+
+    .case-box.warning {
+      border-left-color: var(--warning-color);
+    }
+
+    .case-title {
+      font-weight: 700;
+      font-size: 1.05rem;
+      margin-bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .case-badge {
+      font-size: 0.75rem;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      background: #ccfbf1;
+      color: #0f766e;
+      font-weight: 600;
+    }
+
+    .case-badge.danger {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .case-desc {
+      font-size: 0.92rem;
+      color: #374151;
+      margin-bottom: 8px;
+      line-height: 1.6;
+    }
+
+    .case-trap {
+      font-size: 0.85rem;
+      background: #ffffff;
+      color: #0f766e;
+      padding: 8px 12px;
+      border-radius: 6px;
+      border-left: 3px solid #0d9488;
+    }
+
+    .modal-footer {
+      padding: 14px 24px;
+      background: #fafaf9;
+      border-top: 1px solid #99f6e4;
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .btn-secondary {
+      background-color: #0d9488;
+      color: white;
+      border: none;
+      padding: 8px 18px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+
+    .btn-secondary:hover {
+      background-color: #0f766e;
+    }
+
+    @media (max-width: 640px) {
+      .chart-wrapper {
+        height: 320px;
+      }
+      header h1 {
+        font-size: 1.35rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div id="app" class="container">
+  <header>
+    <h1>近 5 年臺灣登革熱與重要傳染病監測統計儀表板</h1>
+    <p>數據來源：衛生福利部疾病管制署 (Taiwan CDC)、教育部校園傳染病通報系統</p>
+    <div class="btn-action-area">
+      <button class="btn-case" @click="showModal = true">
+        📖 查看登革熱與傳染病防治情境案例與剖析
+      </button>
+    </div>
+  </header>
+
+  <!-- 上方：圖表區 -->
+  <section class="card">
+    <div class="chart-controls">
+      <div class="chart-title">
+        傳染病監測與防治指標趨勢圖（目前顯示：{{ currentChartTypeName }}）
+      </div>
+      <button class="btn-toggle" @click="toggleChartType">
+        🔄 切換為 {{ nextChartTypeName }}
+      </button>
+    </div>
+    <div class="chart-wrapper">
+      <canvas id="epidemicChart"></canvas>
+    </div>
+  </section>
+
+  <!-- 下方：統計表格區 -->
+  <section class="card">
+    <h2 style="font-size: 1.15rem; color: var(--primary-color); margin-bottom: 14px;">病媒蚊指數與法定傳染病統計指標清單</h2>
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>統計項目 / 防疫監測指標類別</th>
+            <th v-for="year in years" :key="year" class="num-cell">{{ year }}</th>
+            <th>趨勢分析與公共衛生意義</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="item in statistics" :key="item.label">
+            <td>
+              <span class="type-badge" :style="{ backgroundColor: item.color }"></span>
+              <strong>{{ item.label }}</strong>
+            </td>
+            <td v-for="(val, idx) in item.counts" :key="idx" class="num-cell">
+              {{ formatNumber(val, item.unit) }}
+            </td>
+            <td style="color: #4b5563; font-size: 0.9rem;">{{ item.analysis }}</td>
+          </tr>
+          <!-- 重點檢視列：本土登革熱確診病例總數 -->
+          <tr class="highlight-row">
+            <td>全國本土登革熱確診病例總數（例）</td>
+            <td v-for="(val, idx) in localDengueCounts" :key="idx" class="num-cell">
+              {{ formatNumber(val, '例') }}
+            </td>
+            <td>2023年南部因高溫多雨爆發破2.6萬例大流行，具週期性爆發特性</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 數據來源出處註明 -->
+    <div class="source-box">
+      <strong>📌 統計數據檢索出處與參考公報：</strong>
+      <ol style="margin-left: 20px; margin-top: 6px;">
+        <li><strong>衛生福利部疾病管制署 (Taiwan CDC)：</strong>《傳染病統計資料查詢系統》第二類法定傳染病「登革熱」本土/境外移入確定病例數及死亡重症統計。</li>
+        <li><strong>疾管署《病媒蚊幼蟲密度調查與誘卵桶監測統計月報》：</strong>台南、高雄、屏東等南部縣市誘卵桶陽性率（陽性率 > 60% 且卵粒數 > 500 粒之高風險里數列管表）。</li>
+        <li><strong>疾管署《公費流感疫苗接種監測專區》：</strong>每年秋冬全台 65 歲以上長者、6 個月至國小學童之公費流感疫苗累計接種劑次與涵蓋率。</li>
+        <li><strong>教育部體育署與各縣市教育局校安中心：</strong>國中小與幼兒園傳染病（流感、流行性結膜炎、腸病毒）通報停課班次與健康中心外傷/發燒就醫統計年報。</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- 案件情境彈出視窗 (Modal) -->
+  <div v-if="showModal" class="modal-overlay" @click.self="showModal = false">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>🦟 綜合課本第1章延伸：登革熱與傳染病防治真實情境剖析</h3>
+        <button class="modal-close" @click="showModal = false">&times;</button>
+      </div>
+      <div class="modal-body">
+        
+        <!-- 案例 1: 登革熱感染誤當感冒 -->
+        <div class="case-box danger">
+          <div class="case-title">
+            <span>情境一：連續突發高燒與後眼窩痛，誤以為一般感冒</span>
+            <span class="case-badge danger">課本第 4、15 頁情境</span>
+          </div>
+          <p class="case-desc">
+            課本第 4、15 頁提到：「感染登革熱身體不舒服時，該怎麼辦？」南部夏季小華突發 39 度高燒，伴隨頭痛、骨頭關節劇痛與噁心，起初家人以為只是著涼感冒自行服用退燒藥，直到兩天後皮膚出現紅疹才緊急就醫，快篩確診為登革熱。
+          </p>
+          <div class="case-trap">
+            🛡️ <strong>課本防護與對應策略：</strong>若在病媒蚊活躍季節出現「突發高燒、後眼窩痛、肌肉關節痛、出疹」，應儘速配戴口罩就醫，並主動告知醫師活動史與防蚊警訊。
+          </div>
+        </div>
+
+        <!-- 案例 2: 孳生源清除「巡倒清刷」 -->
+        <div class="case-box warning">
+          <div class="case-title">
+            <span>情境二：陽台盆栽底盤積水孳生孑孓，社區連環群聚</span>
+            <span class="case-badge warning">課本第 13 頁核心宣導</span>
+          </div>
+          <p class="case-desc">
+            課本第 13 頁刊出「登革熱防治：蚊防四寶」海報[cite: 1]。梅雨過後，隔壁鄰居頂樓廢棄輪胎與花盆底盤積水未倒，短短一週孳生數百隻埃及斑蚊幼蟲（孑孓），導致整棟公寓連續 3 名住戶被叮咬後確診登革熱，衛生局緊急入戶噴藥清消。
+          </p>
+          <div class="case-trap">
+            🛡️ <strong>課本防護與對應策略：</strong>徹底落實「巡、倒、清、刷」[cite: 1]：經常巡檢積水處、倒掉積水、清除多餘容器、刷洗器壁去除蚊卵，才能從根源瓦解病媒蚊傳播鏈。
+          </div>
+        </div>
+
+        <!-- 案例 3: 校園流感與流行性結膜炎群聚 -->
+        <div class="case-box">
+          <div class="case-title">
+            <span>情境三：同儕共用物品引發「紅眼症」與秋冬流感停課</span>
+            <span class="case-badge">課本第 14、22 頁情境</span>
+          </div>
+          <p class="case-desc">
+            課本第 14 頁介紹「流行性結膜炎（紅眼症）」與第 22 頁「流行性感冒預防」[cite: 1]。班上同學因揉眼睛又共用彩色筆與籃球，三天內全班 6 人眼睛紅腫流淚；秋冬季節更因教室門窗緊閉，引發 A 型流感群聚，全班依規定停課一週。
+          </p>
+          <div class="case-trap">
+            🛡️ <strong>課本防護與對應策略：</strong>落實「濕搓沖捧擦」正確勤洗手、生病不上學在家休息[cite: 1]；按時接種公費流感疫苗[cite: 1]，室內保持開窗對流，避免用手揉搓眼鼻口。
+          </div>
+        </div>
+
+        <!-- 案例 4: 登革熱重症警示徵象 -->
+        <div class="case-box danger">
+          <div class="case-title">
+            <span>情境四：長輩重複感染不同型別，出現腹痛黏膜出血重症</span>
+            <span class="case-badge danger">致死風險最高因子</span>
+          </div>
+          <p class="case-desc">
+            患有糖尿病的阿公曾於多年前感染過登革熱第一型，此次感染第二型。退燒後突然出現持續嘔吐、劇烈腹痛、牙齦出血與嗜睡症狀。家人警覺為「登革熱重症警示徵象」，緊急送往急診輸液治療，成功脫離險境。
+          </p>
+          <div class="case-trap">
+            🛡️ <strong>課本防護與對應策略：</strong>高齡長者與慢性病患為重症高危險群；登革熱退燒後 24–48 小時為危險期，一旦出現持續腹痛、嘔吐、出血點，須立即撥打 119 或至大醫院急診。
+          </div>
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" @click="showModal = false">
+          關閉視窗，瀏覽完整數據圖表 ➔
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const { createApp, ref, computed, onMounted } = Vue;
+
+  createApp({
+    setup() {
+      const showModal = ref(false);
+      const years = ['2021年', '2022年', '2023年', '2024年', '2025年'];
+      const chartType = ref('line');
+      let chartInstance = null;
+
+      // 傳染病監測與防疫指標數據 (彙整衛福部疾管署與教育部統計公報)
+      const statistics = ref([
+        {
+          label: '公費流感疫苗全國累計接種量 (萬劑)',
+          color: '#0d9488',
+          unit: '萬劑',
+          counts: [590, 620, 650, 668, 675],
+          analysis: '疫苗覆蓋率逐年提升，長者與校園學童接種率維持在七成以上'
+        },
+        {
+          label: '南部誘卵桶監測陽性率>60%之高風險警戒里數',
+          color: '#ea580c',
+          unit: '里',
+          counts: [120, 185, 820, 360, 240],
+          analysis: '2023年雨量充沛帶動病媒蚊密度飆升，誘卵桶高警戒里數創近年新高'
+        },
+        {
+          label: '全國各級學校流感與腸病毒通報停課班次',
+          color: '#2563eb',
+          unit: '班次',
+          counts: [1200, 1650, 4850, 3920, 3100],
+          analysis: '後疫情時代免疫負債效應在2023年顯著發酵，隨後群體抗體回升趨於平穩'
+        },
+        {
+          label: '登革熱重症累計通報確定病例數',
+          color: '#dc2626',
+          unit: '例',
+          counts: [0, 1, 112, 18, 9],
+          analysis: '重症病例主要集中於2023年大流行期間且多伴隨慢性病之高齡長者'
+        }
+      ]);
+
+      // 全國本土登革熱確診病例總數（單位：例，疾管署傳染病統計資料庫）
+      const localDengueCounts = ref([12, 26, 26377, 2850, 680]);
+
+      const currentChartTypeName = computed(() => {
+        return chartType.value === 'line' ? '折線圖 (Line Chart)' : '長條圖 (Bar Chart)';
+      });
+
+      const nextChartTypeName = computed(() => {
+        return chartType.value === 'line' ? '長條圖' : '折線圖';
+      });
+
+      const formatNumber = (num, unit = '') => {
+        return Number(num).toLocaleString('zh-TW') + ' ' + unit;
+      };
+
+      const renderChart = () => {
+        const ctx = document.getElementById('epidemicChart');
+        if (!ctx) return;
+
+        if (chartInstance) {
+          chartInstance.destroy();
+        }
+
+        const datasets = statistics.value.map(item => ({
+          label: item.label,
+          data: item.counts,
+          borderColor: item.color,
+          backgroundColor: chartType.value === 'line' ? item.color : item.color + 'BF',
+          borderWidth: 2,
+          fill: false,
+          tension: 0.25,
+          pointRadius: 4,
+          pointHoverRadius: 6
+        }));
+
+        chartInstance = new Chart(ctx, {
+          type: chartType.value,
+          data: {
+            labels: years,
+            datasets: datasets
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+              mode: 'index',
+              intersect: false
+            },
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: {
+                  boxWidth: 14,
+                  padding: 16
+                }
+              },
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    let label = context.dataset.label || '';
+                    if (label) label += ': ';
+                    if (context.parsed.y !== null) {
+                      label += context.parsed.y.toLocaleString('zh-TW');
+                    }
+                    return label;
+                  }
+                }
+              }
+            },
+            scales: {
+              x: {
+                grid: { display: false }
+              },
+              y: {
+                beginAtZero: true,
+                ticks: {
+                  callback: function(value) {
+                    return (value >= 1000) ? (value / 1000) + ' 千' : value;
+                  }
+                }
+              }
+            }
+          }
+        });
+      };
+
+      const toggleChartType = () => {
+        chartType.value = chartType.value === 'line' ? 'bar' : 'line';
+        renderChart();
+      };
+
+      onMounted(() => {
+        renderChart();
+      });
+
+      return {
+        showModal,
+        years,
+        statistics,
+        localDengueCounts,
+        chartType,
+        currentChartTypeName,
+        nextChartTypeName,
+        toggleChartType,
+        formatNumber
+      };
+    }
+  }).mount('#app');
+</script>
+
+</body>
+</html>

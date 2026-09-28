@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>近5年165防詐騙主要類型統計儀表板</title>
+  
+  <!-- Vue 3 CDN -->
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    :root {
+      --primary-color: #1e3a8a;
+      --accent-color: #3b82f6;
+      --bg-color: #f8fafc;
+      --card-bg: #ffffff;
+      --text-main: #1f2937;
+      --text-muted: #6b7280;
+      --border-color: #e5e7eb;
+      --danger-color: #ef4444;
+      --warning-color: #f59e0b;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans TC", sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      padding: 24px 16px;
+      line-height: 1.5;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    header h1 {
+      font-size: 1.75rem;
+      color: var(--primary-color);
+      margin-bottom: 8px;
+    }
+
+    header p {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+    }
+
+    .btn-action-area {
+      text-align: center;
+      margin-top: 14px;
+    }
+
+    .btn-case {
+      background-color: #0f766e;
+      color: #ffffff;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.95rem;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 2px 4px rgba(15, 118, 110, 0.2);
+      transition: all 0.2s;
+    }
+
+    .btn-case:hover {
+      background-color: #115e59;
+      transform: translateY(-1px);
+    }
+
+    /* 圖表與表格卡片 */
+    .card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+      padding: 20px;
+      margin-bottom: 28px;
+      border: 1px solid var(--border-color);
+    }
+
+    .chart-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .chart-title {
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: var(--primary-color);
+    }
+
+    .btn-toggle {
+      background-color: var(--accent-color);
+      color: #fff;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background-color 0.2s, transform 0.1s;
+    }
+
+    .btn-toggle:hover {
+      background-color: #2563eb;
+    }
+
+    .chart-wrapper {
+      position: relative;
+      height: 420px;
+      width: 100%;
+    }
+
+    .table-wrapper {
+      overflow-x: auto;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.95rem;
+    }
+
+    thead th {
+      background-color: #f1f5f9;
+      color: var(--primary-color);
+      padding: 12px 16px;
+      font-weight: 600;
+      border-bottom: 2px solid var(--border-color);
+      white-space: nowrap;
+    }
+
+    tbody td {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    tbody tr:hover {
+      background-color: #f8fafc;
+    }
+
+    tbody tr.total-row {
+      background-color: #eff6ff;
+      font-weight: bold;
+    }
+
+    tbody tr.total-row td {
+      border-top: 2px solid #bfdbfe;
+      color: var(--primary-color);
+    }
+
+    .num-cell {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .type-badge {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 6px;
+    }
+
+    .footnote {
+      margin-top: 12px;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    /* Modal 彈出視窗樣式 */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(15, 23, 42, 0.65);
+      backdrop-filter: blur(4px);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 999;
+      padding: 20px;
+    }
+
+    .modal-content {
+      background: #ffffff;
+      width: 100%;
+      max-width: 820px;
+      max-height: 85vh;
+      border-radius: 16px;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      animation: modalFadeIn 0.25s ease-out;
+    }
+
+    @keyframes modalFadeIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    .modal-header {
+      padding: 18px 24px;
+      background: #f8fafc;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-header h3 {
+      font-size: 1.25rem;
+      color: var(--primary-color);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      line-height: 1;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 4px;
+    }
+
+    .modal-close:hover {
+      background: #e2e8f0;
+      color: #000;
+    }
+
+    .modal-body {
+      padding: 24px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .case-box {
+      border: 1px solid #e2e8f0;
+      border-left: 4px solid var(--accent-color);
+      background: #fdfefe;
+      padding: 16px;
+      border-radius: 8px;
+    }
+
+    .case-box.danger {
+      border-left-color: var(--danger-color);
+    }
+
+    .case-box.warning {
+      border-left-color: var(--warning-color);
+    }
+
+    .case-title {
+      font-weight: 700;
+      font-size: 1.05rem;
+      margin-bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .case-badge {
+      font-size: 0.75rem;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      background: #e0f2fe;
+      color: #0369a1;
+      font-weight: 600;
+    }
+
+    .case-desc {
+      font-size: 0.92rem;
+      color: #374151;
+      margin-bottom: 8px;
+      line-height: 1.6;
+    }
+
+    .case-trap {
+      font-size: 0.85rem;
+      background: #fef2f2;
+      color: #991b1b;
+      padding: 8px 12px;
+      border-radius: 6px;
+    }
+
+    .modal-footer {
+      padding: 14px 24px;
+      background: #f8fafc;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .btn-secondary {
+      background-color: #64748b;
+      color: white;
+      border: none;
+      padding: 8px 18px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+
+    .btn-secondary:hover {
+      background-color: #475569;
+    }
+
+    @media (max-width: 640px) {
+      .chart-wrapper {
+        height: 320px;
+      }
+      header h1 {
+        font-size: 1.4rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div id="app" class="container">
+  <header>
+    <h1>近 5 年 165 防詐騙主要類型統計儀表板</h1>
+    <p>資料來源：內政部警政署 / 165 全民防騙網統計分類通報</p>
+    <div class="btn-action-area">
+      <button class="btn-case" @click="showModal = true">
+        📖 查看典型詐騙情境案例與剖析
+      </button>
+    </div>
+  </header>
+
+  <!-- 上方：圖表區 -->
+  <section class="card">
+    <div class="chart-controls">
+      <div class="chart-title">
+        趨勢分布圖（目前顯示：{{ currentChartTypeName }}）
+      </div>
+      <button class="btn-toggle" @click="toggleChartType">
+        🔄 切換為 {{ nextChartTypeName }}
+      </button>
+    </div>
+    <div class="chart-wrapper">
+      <canvas id="fraudChart"></canvas>
+    </div>
+  </section>
+
+  <!-- 下方：統計表格區 -->
+  <section class="card">
+    <h2 style="font-size: 1.15rem; color: var(--primary-color); margin-bottom: 14px;">統計數據清單</h2>
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>詐欺手法類型</th>
+            <th v-for="year in years" :key="year" class="num-cell">{{ year }}</th>
+            <th>佔比與樣態特性分析</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="item in statistics" :key="item.type">
+            <td>
+              <span class="type-badge" :style="{ backgroundColor: item.color }"></span>
+              <strong>{{ item.type }}</strong>
+            </td>
+            <td v-for="(val, idx) in item.counts" :key="idx" class="num-cell">
+              {{ formatNumber(val) }}
+            </td>
+            <td style="color: #4b5563; font-size: 0.9rem;">{{ item.analysis }}</td>
+          </tr>
+          <!-- 總計列 -->
+          <tr class="total-row">
+            <td>全般詐欺總發生件數</td>
+            <td v-for="(total, idx) in totals" :key="idx" class="num-cell">
+              {{ formatNumber(total) }}
+            </td>
+            <td>2024年打詐儀錶板推行後通報涵蓋度顯著提升</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="footnote">
+      ※ 註：2024 年下半年起警政署推行「165 打詐儀錶板」並全面擴大各管道受理補報機制，通報涵蓋度較以往大幅擴充，因此 2024–2025 年數字呈現更完整的受理與發生總量。
+    </p>
+  </section>
+
+  <!-- 案件情境彈出視窗 (Modal) -->
+  <div v-if="showModal" class="modal-overlay" @click.self="showModal = false">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>🔍 綜合課本單元延伸：165 常見詐欺情境案例剖析</h3>
+        <button class="modal-close" @click="showModal = false">&times;</button>
+      </div>
+      <div class="modal-body">
+        
+        <!-- 案例 1: 假投資 -->
+        <div class="case-box danger">
+          <div class="case-title">
+            <span>情境一：名師內線「飆股群組」高獲利陷阱</span>
+            <span class="case-badge">高居財損第 1 名</span>
+          </div>
+          <p class="case-desc">
+            民眾在社群平台上看到知名財經名人的廣告，加入 LINE 投資群組。群內「助教」與「學員」天天貼出獲利百萬的對帳單。被害人被引導下載非官方的「外國合規交易平台 APP」，起初投入小額並成功出金數千元，隨後投入畢生積蓄數百萬元。當想領回本金時，平台卻以「需補繳 20% 保證金與稅金」為由凍結帳戶，最後直接將其踢出群組。
+          </p>
+          <div class="case-trap">
+            ⚠️ <strong>課本觀念驗證：</strong>「穩賺不賠」、「群組曬單」皆為假象！入金皆匯入私人帳戶，非合法證券商。
+          </div>
+        </div>
+
+        <!-- 案例 2: 解除分期付款/假買家 -->
+        <div class="case-box warning">
+          <div class="case-title">
+            <span>情境二：賣場「解除分期付款」與「二手拍賣假買家」</span>
+            <span class="case-badge">高居件數前 3 名</span>
+          </div>
+          <p class="case-desc">
+            陳同學在二手平台出售球鞋，一位假買家私訊表示「無法下單，顯示賣家尚未開通金流防護協議」，並傳送了假冒的「7-11 賣貨便客服」網址。陳同學點入後加入假客服 LINE，對方要求提供金融帳號並轉接「假銀行專員」。專員指示陳同學登入網路銀行輸入「金流認證碼（實為轉帳金額）」操作解除，導致存款被洗劫一空。
+          </p>
+          <div class="case-trap">
+            ⚠️ <strong>課本觀念驗證：</strong>ATM 與網路銀行「只有轉出功能，絕無解除設定或身分認證功能」！
+          </div>
+        </div>
+
+        <!-- 案例 3: 假網拍 -->
+        <div class="case-box">
+          <div class="case-title">
+            <span>情境三：社團限量商品「一頁式廣告」與低價詐欺</span>
+            <span class="case-badge">學生/青年最常遭遇</span>
+          </div>
+          <p class="case-desc">
+            林同學在臉書社團看到熱門演唱會門票及限量球鞋，價格僅市價五折，賣家宣稱「急售搬家求現、支持貨到付款」。林同學收到包裹開箱後，裡面卻只是廉價水壺與廢紙；另有受害者依指示匯款後，賣家便立刻封鎖帳號人間蒸發。
+          </p>
+          <div class="case-trap">
+            ⚠️ <strong>課本觀念驗證：</strong>私下透過 LINE 交易風險最高，應選擇具有「第三方託管支付與退款保障機制」之正式平台。
+          </div>
+        </div>
+
+        <!-- 案例 4: 假交友/點數 -->
+        <div class="case-box">
+          <div class="case-title">
+            <span>情境四：網路假交友邀約見面「先買遊戲點數」</span>
+            <span class="case-badge">青少年警戒情境</span>
+          </div>
+          <p class="case-desc">
+            國中生小宇在交友軟體認識自稱同校的美女網友，雙方相談甚歡並相約超商見面。出發前對方突然表示「公司經理要求先確認不是警察，要先到超商買 3,000 元 App Store / GASH 點數並拍下序號密碼」。小宇猶豫時，自稱黑道大哥的男子立刻來電恐嚇，揚言對家人不利，小宇驚慌之下連續購買數萬元點數。
+          </p>
+          <div class="case-trap">
+            ⚠️ <strong>課本觀念驗證：</strong>遊戲點數「不能當作身分驗證工具」！一旦序號傳送即無法追回，遇恐嚇應立即求助師長或撥打 165/110。
+          </div>
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" @click="showModal = false">
+          關閉視窗，瀏覽完整數據圖表 ➔
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const { createApp, ref, computed, onMounted } = Vue;
+
+  createApp({
+    setup() {
+      const showModal = ref(false); // 彈窗開關控制
+      const years = ['2021年', '2022年', '2023年', '2024年', '2025年'];
+      const chartType = ref('line'); // 'line' 或 'bar'
+      let chartInstance = null;
+
+      // 各類型統計數據
+      const statistics = ref([
+        {
+          type: '假投資詐欺',
+          color: '#ef4444',
+          counts: [4904, 6542, 11719, 28000, 58675],
+          analysis: '成長幅度最大，財損金額高達總體 60% 以上'
+        },
+        {
+          type: '假網路拍賣（購物）',
+          color: '#f97316',
+          counts: [5667, 6787, 8391, 19000, 35443],
+          analysis: '青少年與年輕網購族群最常遭遇的詐欺型態'
+        },
+        {
+          type: '一般購物／假買賣',
+          color: '#eab308',
+          counts: [2810, 3120, 4215, 9800, 19754],
+          analysis: '實體或個人非電商二手交易糾紛與詐欺'
+        },
+        {
+          type: '解除分期付款 (含假買家)',
+          color: '#10b981',
+          counts: [4347, 4827, 6992, 11000, 14000],
+          analysis: '由傳統 ATM 轉型為鎖定賣家的假客服、金流認證手法'
+        },
+        {
+          type: '假愛情交友 (含投資)',
+          color: '#8b5cf6',
+          counts: [1174, 1402, 1980, 5200, 9800],
+          analysis: '結合假投資平台的複合型「殺豬盤」手法'
+        },
+        {
+          type: '其他手法 (冒充公務/點數等)',
+          color: '#64748b',
+          counts: [5818, 6831, 4687, 18000, 59923],
+          analysis: '涵蓋簡訊釣魚、求職騙帳戶、色情遊戲點數等'
+        }
+      ]);
+
+      const totals = computed(() => {
+        return years.map((_, yearIdx) => {
+          return statistics.value.reduce((acc, cur) => acc + cur.counts[yearIdx], 0);
+        });
+      });
+
+      const currentChartTypeName = computed(() => {
+        return chartType.value === 'line' ? '折線圖 (Line Chart)' : '長條圖 (Bar Chart)';
+      });
+
+      const nextChartTypeName = computed(() => {
+        return chartType.value === 'line' ? '長條圖' : '折線圖';
+      });
+
+      const formatNumber = (num) => {
+        return Number(num).toLocaleString('zh-TW') + ' 件';
+      };
+
+      const renderChart = () => {
+        const ctx = document.getElementById('fraudChart');
+        if (!ctx) return;
+
+        if (chartInstance) {
+          chartInstance.destroy();
+        }
+
+        const datasets = statistics.value.map(item => ({
+          label: item.type,
+          data: item.counts,
+          borderColor: item.color,
+          backgroundColor: chartType.value === 'line' ? item.color : item.color + 'BF',
+          borderWidth: 2,
+          fill: false,
+          tension: 0.25,
+          pointRadius: 4,
+          pointHoverRadius: 6
+        }));
+
+        chartInstance = new Chart(ctx, {
+          type: chartType.value,
+          data: {
+            labels: years,
+            datasets: datasets
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+              mode: 'index',
+              intersect: false
+            },
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: {
+                  boxWidth: 14,
+                  padding: 16
+                }
+              },
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    let label = context.dataset.label || '';
+                    if (label) label += ': ';
+                    if (context.parsed.y !== null) {
+                      label += context.parsed.y.toLocaleString('zh-TW') + ' 件';
+                    }
+                    return label;
+                  }
+                }
+              }
+            },
+            scales: {
+              x: {
+                grid: { display: false }
+              },
+              y: {
+                beginAtZero: true,
+                ticks: {
+                  callback: function(value) {
+                    return (value / 10000) >= 1 ? (value / 10000) + ' 萬' : value;
+                  }
+                }
+              }
+            }
+          }
+        });
+      };
+
+      const toggleChartType = () => {
+        chartType.value = chartType.value === 'line' ? 'bar' : 'line';
+        renderChart();
+      };
+
+      onMounted(() => {
+        renderChart();
+      });
+
+      return {
+        showModal,
+        years,
+        statistics,
+        totals,
+        chartType,
+        currentChartTypeName,
+        nextChartTypeName,
+        toggleChartType,
+        formatNumber
+      };
+    }
+  }).mount('#app');
+</script>
+
+</body>
+</html>

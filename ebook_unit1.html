@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>國小綜合五上 單元一：化解危機總動員 電子書</title>
+
+  <!-- 3D 擬真翻頁引擎 CDN (St-Page-Flip) -->
+  <script src="https://cdn.jsdelivr.net/npm/page-flip/dist/js/page-flip.browser.js"></script>
+
+  <style>
+    :root {
+      --bar-bg: #1e293b;
+      --bar-btn: #334155;
+      --bar-btn-hover: #475569;
+      --bar-text: #f8fafc;
+      --accent: #3b82f6;
+      --stage-bg: #0f172a;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: var(--stage-bg);
+      color: var(--bar-text);
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* 頂部控制工具列 */
+    header.toolbar {
+      height: 56px;
+      background-color: var(--bar-bg);
+      border-bottom: 1px solid #334155;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      z-index: 100;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    .tool-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .book-tag {
+      background: #f97316;
+      color: #fff;
+      font-size: 0.75rem;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: bold;
+    }
+
+    .book-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .btn {
+      background-color: var(--bar-btn);
+      color: var(--bar-text);
+      border: 1px solid #475569;
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+      user-select: none;
+    }
+
+    .btn:hover {
+      background-color: var(--bar-btn-hover);
+    }
+
+    .btn.active {
+      background-color: var(--accent);
+      border-color: #60a5fa;
+    }
+
+    select.page-select {
+      background-color: var(--bar-btn);
+      color: var(--bar-text);
+      border: 1px solid #475569;
+      border-radius: 6px;
+      padding: 5px 8px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      outline: none;
+    }
+
+    /* 舞台閱讀區總容器 */
+    main.viewport {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      user-select: none;
+    }
+
+    /* 方案 A：原生平面閱覽模式 (支援拖曳平移與縮放) */
+    .flat-container {
+      position: absolute;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 4px;
+      cursor: grab;
+      transition: transform 0.05s ease-out;
+      transform-origin: center center;
+    }
+
+    .flat-container:active {
+      cursor: grabbing;
+    }
+
+    .page-box {
+      background-color: #fff;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+      border-radius: 4px;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .page-box img {
+      max-height: calc(100vh - 80px);
+      max-width: 100%;
+      object-fit: contain;
+      display: block;
+      pointer-events: none;
+    }
+
+    /* 方案 B：3D 翻頁書容器 */
+    .flip-container {
+      width: 100%;
+      height: 100%;
+      display: none;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .st-page-flip {
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6);
+    }
+
+    .st-page {
+      background-color: #ffffff;
+      overflow: hidden;
+    }
+
+    .st-page img {
+      width: 100%;
+      height: 100%;
+      object-fit: fill;
+    }
+
+    /* 左右兩側懸浮翻頁按鈕 */
+    .nav-arrow {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 46px;
+      height: 56px;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #ffffff;
+      font-size: 1.5rem;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      border-radius: 8px;
+      z-index: 50;
+      transition: background 0.2s, transform 0.1s;
+    }
+
+    .nav-arrow:hover {
+      background: rgba(30, 41, 59, 0.9);
+      transform: translateY(-50%) scale(1.05);
+    }
+
+    .nav-arrow.prev { left: 16px; }
+    .nav-arrow.next { right: 16px; }
+
+    @media (max-width: 860px) {
+      .book-title { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 頂部工具列 -->
+  <header class="toolbar">
+    <div class="tool-group">
+      <span class="book-tag">綜合5上</span>
+      <span class="book-title">單元一：化解危機總動員</span>
+      
+      <!-- 引擎切換按鈕 -->
+      <button id="btnToggleEngine" class="btn" style="background-color: #0f766e; border-color: #14b8a6;" onclick="toggleEngine()">
+        📖 切換為 3D 翻頁模式
+      </button>
+    </div>
+
+    <!-- 頁次選擇與單雙頁切換 -->
+    <div class="tool-group">
+      <button class="btn" onclick="prevStep()">◀</button>
+      <select id="pageSelect" class="page-select" onchange="jumpToPage(Number(this.value))">
+        <!-- 由 JS 動態建立 36 頁選項 -->
+      </select>
+      <button class="btn" onclick="nextStep()">▶</button>
+
+      <button id="btnSpread" class="btn active" onclick="toggleSpread()">📄 雙頁</button>
+    </div>
+
+    <!-- 縮放與檢視控制 (在平面模式下運作) -->
+    <div class="tool-group">
+      <button class="btn" onclick="zoomChange(0.15)" title="放大">+</button>
+      <span id="zoomText" style="font-size: 0.8rem; min-width: 40px; text-align: center;">100%</span>
+      <button class="btn" onclick="zoomChange(-0.15)" title="縮小">-</button>
+      <button class="btn" onclick="resetZoom()" title="最適大小">1:1</button>
+      <button class="btn" onclick="toggleFullScreen()" title="全螢幕">⛶</button>
+    </div>
+  </header>
+
+  <!-- 閱覽舞台 -->
+  <main class="viewport" id="viewport">
+    
+    <!-- 方案 A 容器 (平面閱覽模式) -->
+    <div class="flat-container" id="flatContainer">
+      <div class="page-box" id="leftPageBox">
+        <img id="imgLeft" src="" alt="左頁" />
+      </div>
+      <div class="page-box" id="rightPageBox">
+        <img id="imgRight" src="" alt="右頁" />
+      </div>
+    </div>
+
+    <!-- 方案 B 容器 (3D 翻頁模式) -->
+    <div class="flip-container" id="flipContainer">
+      <div id="bookFlipWrapper">
+        <!-- 3D 節點將於切換時由 JS 動態建立 -->
+      </div>
+    </div>
+
+    <!-- 兩側懸浮導引按鈕 -->
+    <div class="nav-arrow prev" onclick="prevStep()">❮</div>
+    <div class="nav-arrow next" onclick="nextStep()">❯</div>
+  </main>
+
+  <script>
+    // 課本頁碼範疇 (PDF共36頁，實體對應第4頁至第39頁)
+    const START_PAGE = 4;
+    const END_PAGE = 39;
+    const TOTAL_PAGES = END_PAGE - START_PAGE + 1; // 36 頁
+
+    // 章節主題標記 (供下拉式選單標記指引)
+    const CHAPTERS = {
+      4: "單元扉頁：化解危機總動員",
+      6: "活動1：潛藏危機放大鏡",
+      12: "活動2：辨識危機小撇步",
+      22: "活動3：化解危機即轉機",
+      28: "事例研討：毒品與校園情境",
+      34: "自我檢核：停水與道安事件",
+      38: "單元再省思"
+    };
+
+    // 狀態管理
+    let currentPage = 4;        // 目前檢視之頁碼
+    let isSpread = true;        // 是否雙頁顯示 (預設雙頁)
+    let is3DMode = false;       // 是否啟用 3D 翻頁模式 (預設方案 A：平面)
+    let zoomLevel = 1.0;        // 縮放比例
+    let panX = 0, panY = 0;     // 拖曳位移
+    let isDragging = false;
+    let startX = 0, startY = 0;
+
+    let pageFlipInstance = null; // 3D PageFlip 實體
+
+    // 取得圖片檔名路徑 (支援 images/4.jpg 或相容 page_04.jpg)
+    function getPageImagePath(pageNo) {
+      return `images/${pageNo}.jpg`;
+    }
+
+    // 初始化下拉式選單
+    function initPageSelect() {
+      const select = document.getElementById('pageSelect');
+      select.innerHTML = '';
+      for (let p = START_PAGE; p <= END_PAGE; p++) {
+        const opt = document.createElement('option');
+        opt.value = p;
+        const note = CHAPTERS[p] ? ` - ${CHAPTERS[p]}` : '';
+        opt.textContent = `第 ${p} 頁${note}`;
+        select.appendChild(opt);
+      }
+    }
+
+    // 方案 A：渲染平面頁面
+    function renderFlatView() {
+      const imgLeft = document.getElementById('imgLeft');
+      const imgRight = document.getElementById('imgRight');
+      const rightBox = document.getElementById('rightPageBox');
+
+      if (!isSpread) {
+        // 單頁模式
+        imgLeft.src = getPageImagePath(currentPage);
+        rightBox.style.display = 'none';
+      } else {
+        // 雙頁跨頁模式 (左偶數、右奇數，若為封面第4頁單獨居中)
+        rightBox.style.display = 'flex';
+        if (currentPage === 4) {
+          // 第4頁為扉頁單頁展示
+          imgLeft.src = getPageImagePath(4);
+          rightBox.style.display = 'none';
+        } else {
+          // 計算左右跨頁
+          let leftP = (currentPage % 2 === 0) ? currentPage : currentPage - 1;
+          let rightP = leftP + 1;
+
+          if (leftP < START_PAGE) leftP = START_PAGE;
+          imgLeft.src = getPageImagePath(leftP);
+
+          if (rightP <= END_PAGE) {
+            imgRight.src = getPageImagePath(rightP);
+            rightBox.style.display = 'flex';
+          } else {
+            rightBox.style.display = 'none';
+          }
+        }
+      }
+
+      applyTransform();
+      updateToolbarUI();
+    }
+
+    // 更新工具列狀態與選單同步
+    function updateToolbarUI() {
+      document.getElementById('pageSelect').value = currentPage;
+      document.getElementById('btnSpread').className = `btn ${isSpread ? 'active' : ''}`;
+      document.getElementById('btnSpread').textContent = isSpread ? '📄 雙頁' : '📄 單頁';
+      document.getElementById('zoomText').textContent = `${Math.round(zoomLevel * 100)}%`;
+    }
+
+    // 縮放與平移處理
+    function applyTransform() {
+      const flat = document.getElementById('flatContainer');
+      flat.style.transform = `translate(${panX}px, ${panY}px) scale(${zoomLevel})`;
+    }
+
+    function zoomChange(delta) {
+      if (is3DMode) {
+        // 若在 3D 模式下要求放大，切回平面模式以啟用自由拖曳
+        alert('為提供高解析細節拖曳與平移，已為您自動切換至「平面閱讀模式」。');
+        toggleEngine(false);
+      }
+      zoomLevel = Math.min(Math.max(0.5, zoomLevel + delta), 2.2);
+      applyTransform();
+      updateToolbarUI();
+    }
+
+    function resetZoom() {
+      zoomLevel = 1.0;
+      panX = 0;
+      panY = 0;
+      applyTransform();
+      updateToolbarUI();
+    }
+
+    // 頁碼跳轉與步進
+    function jumpToPage(page) {
+      currentPage = Math.min(Math.max(START_PAGE, page), END_PAGE);
+      if (is3DMode && pageFlipInstance) {
+        pageFlipInstance.flip(currentPage - START_PAGE);
+      } else {
+        renderFlatView();
+      }
+    }
+
+    function prevStep() {
+      if (is3DMode && pageFlipInstance) {
+        pageFlipInstance.flipPrev();
+      } else {
+        let step = (isSpread && currentPage > 4) ? 2 : 1;
+        jumpToPage(currentPage - step);
+      }
+    }
+
+    function nextStep() {
+      if (is3DMode && pageFlipInstance) {
+        pageFlipInstance.flipNext();
+      } else {
+        let step = (isSpread && currentPage >= 4) ? 2 : 1;
+        jumpToPage(currentPage + step);
+      }
+    }
+
+    function toggleSpread() {
+      if (is3DMode) {
+        alert('3D 翻頁模式固定採用跨頁對開模擬，若需強制單頁請切換為平面模式。');
+        return;
+      }
+      isSpread = !isSpread;
+      renderFlatView();
+    }
+
+    // 方案 B：初始化 3D PageFlip 實體
+    function init3DPageFlip() {
+      const wrapper = document.getElementById('bookFlipWrapper');
+      wrapper.innerHTML = '';
+
+      // 一次性建置 36 個頁面 div
+      for (let p = START_PAGE; p <= END_PAGE; p++) {
+        const pageDiv = document.createElement('div');
+        pageDiv.className = 'st-page';
+        pageDiv.innerHTML = `<img src="${getPageImagePath(p)}" alt="Page ${p}" />`;
+        wrapper.appendChild(pageDiv);
+      }
+
+      const winWidth = window.innerWidth;
+      const winHeight = window.innerHeight - 80;
+      const pageWidth = Math.min(winWidth * 0.45, 560);
+      const pageHeight = Math.min(winHeight * 0.92, 780);
+
+      pageFlipInstance = new St.PageFlip(wrapper, {
+        width: pageWidth,
+        height: pageHeight,
+        size: 'fixed',
+        minWidth: 320,
+        maxWidth: 650,
+        minHeight: 420,
+        maxHeight: 880,
+        showCover: true,
+        maxShadowOpacity: 0.5,
+        useMouseEvents: true
+      });
+
+      pageFlipInstance.loadFromHTML(document.querySelectorAll('.st-page'));
+
+      // 監聽 3D 翻頁事件同步更新頁碼
+      pageFlipInstance.on('flip', (e) => {
+        currentPage = START_PAGE + e.data;
+        updateToolbarUI();
+      });
+
+      // 翻至當前平面所在頁碼
+      pageFlipInstance.turnToPage(currentPage - START_PAGE);
+    }
+
+    // 雙引擎切換邏輯 (A 與 B 互斥置換)
+    function toggleEngine(forceMode) {
+      if (typeof forceMode === 'boolean') {
+        is3DMode = forceMode;
+      } else {
+        is3DMode = !is3DMode;
+      }
+
+      const btn = document.getElementById('btnToggleEngine');
+      const flatBox = document.getElementById('flatContainer');
+      const flipBox = document.getElementById('flipContainer');
+
+      if (is3DMode) {
+        // 切換至 方案 B (3D)
+        btn.textContent = '📄 切換為平面閱讀模式';
+        btn.style.backgroundColor = '#2563eb';
+        btn.style.borderColor = '#60a5fa';
+        flatBox.style.display = 'none';
+        flipBox.style.display = 'flex';
+
+        resetZoom();
+        init3DPageFlip();
+      } else {
+        // 切換至 方案 A (平面)
+        btn.textContent = '📖 切換為 3D 翻頁模式';
+        btn.style.backgroundColor = '#0f766e';
+        btn.style.borderColor = '#14b8a6';
+
+        if (pageFlipInstance) {
+          pageFlipInstance.destroy();
+          pageFlipInstance = null;
+        }
+
+        flipBox.style.display = 'none';
+        flatBox.style.display = 'flex';
+        renderFlatView();
+      }
+    }
+
+    // 平面模式下的滑鼠拖曳平移 (Pan)
+    const viewport = document.getElementById('viewport');
+    viewport.addEventListener('mousedown', (e) => {
+      if (is3DMode || zoomLevel <= 1.0) return;
+      isDragging = true;
+      startX = e.clientX - panX;
+      startY = e.clientY - panY;
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      panX = e.clientX - startX;
+      panY = e.clientY - startY;
+      applyTransform();
+    });
+
+    window.addEventListener('mouseup', () => { isDragging = false; });
+
+    // 全螢幕切換
+    function toggleFullScreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        if (document.exitFullscreen) document.exitFullscreen();
+      }
+    }
+
+    // 鍵盤左右方向鍵翻頁
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowLeft') prevStep();
+      if (e.key === 'ArrowRight') nextStep();
+    });
+
+    // 視窗大小改變時重適應
+    window.addEventListener('resize', () => {
+      if (is3DMode && pageFlipInstance) {
+        init3DPageFlip();
+      }
+    });
+
+    // 頁面啟動
+    window.onload = () => {
+      initPageSelect();
+      renderFlatView(); // 預設方案 A
+    };
+  </script>
+</body>
+</html>

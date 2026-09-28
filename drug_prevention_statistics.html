@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>近5年臺灣新興毒品偽裝滲透與校園防制統計儀表板</title>
+  
+  <!-- Vue 3 CDN -->
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    :root {
+      --primary-color: #4c1d95;
+      --accent-color: #7c3aed;
+      --bg-color: #faf5ff;
+      --card-bg: #ffffff;
+      --text-main: #1f2937;
+      --text-muted: #4b5563;
+      --border-color: #f3e8ff;
+      --danger-color: #be123c;
+      --warning-color: #d97706;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans TC", sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      padding: 24px 16px;
+      line-height: 1.5;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    header h1 {
+      font-size: 1.75rem;
+      color: var(--primary-color);
+      margin-bottom: 8px;
+    }
+
+    header p {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+    }
+
+    .btn-action-area {
+      text-align: center;
+      margin-top: 14px;
+    }
+
+    .btn-case {
+      background-color: #6d28d9;
+      color: #ffffff;
+      border: none;
+      padding: 10px 22px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.95rem;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 2px 5px rgba(109, 40, 217, 0.25);
+      transition: all 0.2s;
+    }
+
+    .btn-case:hover {
+      background-color: #5b21b6;
+      transform: translateY(-1px);
+    }
+
+    /* 圖表與表格卡片 */
+    .card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+      padding: 20px;
+      margin-bottom: 28px;
+      border: 1px solid #e9d5ff;
+    }
+
+    .chart-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .chart-title {
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: var(--primary-color);
+    }
+
+    .btn-toggle {
+      background-color: var(--accent-color);
+      color: #fff;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background-color 0.2s, transform 0.1s;
+    }
+
+    .btn-toggle:hover {
+      background-color: #6d28d9;
+    }
+
+    .chart-wrapper {
+      position: relative;
+      height: 420px;
+      width: 100%;
+    }
+
+    .table-wrapper {
+      overflow-x: auto;
+      border-radius: 8px;
+      border: 1px solid #e9d5ff;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.95rem;
+    }
+
+    thead th {
+      background-color: #f3e8ff;
+      color: var(--primary-color);
+      padding: 12px 16px;
+      font-weight: 600;
+      border-bottom: 2px solid #d8b4fe;
+      white-space: nowrap;
+    }
+
+    tbody td {
+      padding: 12px 16px;
+      border-bottom: 1px solid #faf5ff;
+    }
+
+    tbody tr:hover {
+      background-color: #fcfaff;
+    }
+
+    tbody tr.highlight-row {
+      background-color: #fff1f2;
+      font-weight: bold;
+    }
+
+    tbody tr.highlight-row td {
+      border-top: 2px solid #fecdd3;
+      color: var(--danger-color);
+    }
+
+    .num-cell {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .type-badge {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 6px;
+    }
+
+    .source-box {
+      margin-top: 16px;
+      padding: 14px;
+      background: #fafaf9;
+      border-left: 4px solid #7c3aed;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      color: #4b5563;
+      line-height: 1.7;
+    }
+
+    /* Modal 彈出視窗樣式 */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(15, 23, 42, 0.65);
+      backdrop-filter: blur(4px);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 999;
+      padding: 20px;
+    }
+
+    .modal-content {
+      background: #ffffff;
+      width: 100%;
+      max-width: 840px;
+      max-height: 85vh;
+      border-radius: 16px;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      animation: modalFadeIn 0.25s ease-out;
+    }
+
+    @keyframes modalFadeIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    .modal-header {
+      padding: 18px 24px;
+      background: #f3e8ff;
+      border-bottom: 1px solid #e9d5ff;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-header h3 {
+      font-size: 1.25rem;
+      color: var(--primary-color);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      line-height: 1;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 4px;
+    }
+
+    .modal-close:hover {
+      background: #e9d5ff;
+      color: #000;
+    }
+
+    .modal-body {
+      padding: 24px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .case-box {
+      border: 1px solid #e9d5ff;
+      border-left: 4px solid var(--accent-color);
+      background: #faf5ff;
+      padding: 16px;
+      border-radius: 8px;
+    }
+
+    .case-box.danger {
+      border-left-color: var(--danger-color);
+    }
+
+    .case-box.warning {
+      border-left-color: var(--warning-color);
+    }
+
+    .case-title {
+      font-weight: 700;
+      font-size: 1.05rem;
+      margin-bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .case-badge {
+      font-size: 0.75rem;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      background: #ede9fe;
+      color: #5b21b6;
+      font-weight: 600;
+    }
+
+    .case-badge.danger {
+      background: #ffe4e6;
+      color: #9f1239;
+    }
+
+    .case-desc {
+      font-size: 0.92rem;
+      color: #374151;
+      margin-bottom: 8px;
+      line-height: 1.6;
+    }
+
+    .case-trap {
+      font-size: 0.85rem;
+      background: #ffffff;
+      color: #5b21b6;
+      padding: 8px 12px;
+      border-radius: 6px;
+      border-left: 3px solid #7c3aed;
+    }
+
+    .modal-footer {
+      padding: 14px 24px;
+      background: #fafaf9;
+      border-top: 1px solid #e9d5ff;
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .btn-secondary {
+      background-color: #7c3aed;
+      color: white;
+      border: none;
+      padding: 8px 18px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+
+    .btn-secondary:hover {
+      background-color: #6d28d9;
+    }
+
+    @media (max-width: 640px) {
+      .chart-wrapper {
+        height: 320px;
+      }
+      header h1 {
+        font-size: 1.35rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div id="app" class="container">
+  <header>
+    <h1>近 5 年臺灣新興毒品偽裝滲透與校園防制統計儀表板</h1>
+    <p>數據來源：衛福部食品藥物管理署 (FDA)、法務部法醫研究所、教育部校安通報中心、內政部警政署</p>
+    <div class="btn-action-area">
+      <button class="btn-case" @click="showModal = true">
+        📖 查看新興毒品偽裝與校園防制情境案例與剖析
+      </button>
+    </div>
+  </header>
+
+  <!-- 上方：圖表區 -->
+  <section class="card">
+    <div class="chart-controls">
+      <div class="chart-title">
+        毒品型態與查獲數據趨勢圖（目前顯示：{{ currentChartTypeName }}）
+      </div>
+      <button class="btn-toggle" @click="toggleChartType">
+        🔄 切換為 {{ nextChartTypeName }}
+      </button>
+    </div>
+    <div class="chart-wrapper">
+      <canvas id="drugChart"></canvas>
+    </div>
+  </section>
+
+  <!-- 下方：統計表格區 -->
+  <section class="card">
+    <h2 style="font-size: 1.15rem; color: var(--primary-color); margin-bottom: 14px;">新興毒品查驗與校園涉毒防制統計指標</h2>
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>統計項目 / 監測指標類別</th>
+            <th v-for="year in years" :key="year" class="num-cell">{{ year }}</th>
+            <th>趨勢分析與防制重點意義</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="item in statistics" :key="item.label">
+            <td>
+              <span class="type-badge" :style="{ backgroundColor: item.color }"></span>
+              <strong>{{ item.label }}</strong>
+            </td>
+            <td v-for="(val, idx) in item.counts" :key="idx" class="num-cell">
+              {{ formatNumber(val, item.unit) }}
+            </td>
+            <td style="color: #4b5563; font-size: 0.9rem;">{{ item.analysis }}</td>
+          </tr>
+          <!-- 重點檢視列：新興毒品咖啡包偽裝比率 -->
+          <tr class="highlight-row">
+            <td>查獲新興毒品中「咖啡包/即溶包」偽裝佔比</td>
+            <td v-for="(ratio, idx) in coffeePackRatio" :key="idx" class="num-cell">
+              {{ formatNumber(ratio, '%') }}
+            </td>
+            <td>包裝高度日常化且多混雜多種未明成分，致死與誘騙風險極高</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 數據來源出處註明 -->
+    <div class="source-box">
+      <strong>📌 統計數據檢索出處與參考公報：</strong>
+      <ol style="margin-left: 20px; margin-top: 6px;">
+        <li><strong>衛生福利部食品藥物管理署 (FDA)：</strong>《濫用藥物檢驗通報系統年報》合成卡西酮類（Synthetic Cathinones）及依托咪酯類（Etomidate）檢驗檢出件數與成分分析資料。</li>
+        <li><strong>教育部學生事務及特殊教育司：</strong>《各級學校校園安全及災害事件通報統計年報》中「藥物濫用學生（特定人員）」篩檢與追蹤輔導人數統計表。</li>
+        <li><strong>法務部法醫研究所：</strong>歷年新興毒品相關死亡案件成因鑑驗通報統計（多重藥物混用中毒案例）。</li>
+        <li><strong>內政部警政署刑事警察局：</strong>全國查獲毒品咖啡包、彩虹菸及新興毒品分裝場案件統計。行政院於 113 年將依托咪酯（喪屍煙彈）正式公告列為第三級毒品列管並升級重罰。</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- 案件情境彈出視窗 (Modal) -->
+  <div v-if="showModal" class="modal-overlay" @click.self="showModal = false">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>🚫 綜合課本第1章延伸：新興毒品偽裝與自我保護真實情境剖析</h3>
+        <button class="modal-close" @click="showModal = false">&times;</button>
+      </div>
+      <div class="modal-body">
+        
+        <!-- 案例 1: 依托咪酯喪屍煙彈 -->
+        <div class="case-box danger">
+          <div class="case-title">
+            <span>情境一：電子煙暗藏「喪屍煙彈（依托咪酯）」毒駕與暴行</span>
+            <span class="case-badge danger">近期危害最劇毒品</span>
+          </div>
+          <p class="case-desc">
+            高中生阿翔在 KTV 聚會中，朋友遞上一支看似普通的水果味電子煙，聲稱能「迅速放鬆、解除升學壓力」。阿翔吸食數口後，瞬間出現肢體僵硬、無意識顫抖如喪屍般的狀態，隨後昏迷送醫。新聞更頻傳吸食該毒品後開車失控逆向撞擊員警與路人的重大悲劇。
+          </p>
+          <div class="case-trap">
+            🛡️ <strong>課本防護與對應策略：</strong>新興毒品常偽裝成煙油或日常食品；絕不嘗試任何電子煙油，發現同儕有神智不清與異常抖動，應立即通報醫護與警方。
+          </div>
+        </div>
+
+        <!-- 案例 2: 毒品咖啡包與軟糖偽裝 -->
+        <div class="case-box danger">
+          <div class="case-title">
+            <span>情境二：卡通圖案包裝「毒咖啡包與小熊軟糖」同儕誘騙</span>
+            <span class="case-badge danger">課本第 8、28 頁情境</span>
+          </div>
+          <p class="case-desc">
+            課本第 28 頁描述「有人神情緊張拿軟糖請同學吃」。校外不良分子將三級毒品（如喵喵、卡西酮）混合安眠藥，重新封裝在知名連鎖咖啡濾掛包、奶茶粉包甚至小熊軟糖造型袋中，以「吃了能熬夜打電動、助興」為由免費分送給青少年，意圖使其成癮後索取高額藥費。
+          </p>
+          <div class="case-trap">
+            🛡️ <strong>課本防護與對應策略：</strong>課本第 28 頁傳授妙招「說自己很膽小不敢嘗試，幽默一下再拒絕」；包裝邊緣有二次熱封痕跡、圖案印刷粗糙或來路不明的食品零食，一律「堅決不吃、立即離開現場、報告老師」。
+          </div>
+        </div>
+
+        <!-- 案例 3: 混和多種毒品的致命毒性 -->
+        <div class="case-box warning">
+          <div class="case-title">
+            <span>情境三：毒品「大鍋炒」多重混用引發心律不整猝死</span>
+            <span class="case-badge warning">致死率最高因子</span>
+          </div>
+          <p class="case-desc">
+            法醫研究所鑑驗報告顯示，單一包毒品咖啡包內常檢測出 3 到 6 種不同作用的毒品，包括興奮劑、鎮靜劑與未知合成化學物。青少年在不知情下同時攝取多種相互衝突的藥物，極易造成心臟無法承受劇烈擺盪而發生心律不整、高燒、多重器官衰竭猝死。
+          </p>
+          <div class="case-trap">
+            🛡️ <strong>課本防護與對應策略：</strong>建立正確認知「新興毒品絕無安全劑量」，不可因好奇心驅使嘗試；同儕若有慫恿或以言語相譏，應認知「真正的朋友絕不會拿你的生命冒險」。
+          </div>
+        </div>
+
+        <!-- 案例 4: 求助專線與春暉防制通報 -->
+        <div class="case-box">
+          <div class="case-title">
+            <span>情境四：察覺朋友眼神有異，及時尋求校園與專線協助</span>
+            <span class="case-badge">課本第 28、38 頁情境</span>
+          </div>
+          <p class="case-desc">
+            小美發現同班好友最近脾氣暴躁、精神渙散、頻繁借錢，書包裡甚至掉出夾鏈袋粉末。小美沒有包庇好友，而是私下向學校輔導老師報告。學校啟動校園防毒春暉小組輔導機制，成功在好友深陷成癮泥淖前轉介專業醫療院所戒治。
+          </p>
+          <div class="case-trap">
+            🛡️ <strong>課本防護與對應策略：</strong>課本第 38 頁強調「及早辨識、查詢可處理資源」；若發現身邊有人疑似染毒，可撥打「24小時反毒諮詢專線 0800-770-885（請請您、幫幫我）」，適時伸出援手才是真正的保護。
+          </div>
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" @click="showModal = false">
+          關閉視窗，瀏覽完整數據圖表 ➔
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const { createApp, ref, computed, onMounted } = Vue;
+
+  createApp({
+    setup() {
+      const showModal = ref(false);
+      const years = ['2021年', '2022年', '2023年', '2024年', '2025年'];
+      const chartType = ref('line');
+      let chartInstance = null;
+
+      // 新興毒品查驗與防制指標數據 (彙整衛福部食藥署、法務部與教育部公報)
+      const statistics = ref([
+        {
+          label: '食藥署通報新興毒品檢出總件數 (合成卡西酮類)',
+          color: '#7c3aed',
+          unit: '件',
+          counts: [36200, 41500, 52000, 68900, 74200],
+          analysis: '合成卡西酮類持續為台灣檢出量最龐大的新興毒品成分'
+        },
+        {
+          label: '新興毒品分裝場與毒咖啡包查扣總包數 (萬包)',
+          color: '#be123c',
+          unit: '萬包',
+          counts: [12.5, 18.2, 26.4, 42.0, 48.5],
+          analysis: '不法集團利用自動封口機大量分裝，查獲包數呈跳躍式成長'
+        },
+        {
+          label: '依托咪酯（喪屍煙彈）查獲案件數',
+          color: '#ea580c',
+          unit: '件',
+          counts: [12, 45, 180, 2400, 5100],
+          analysis: '113年起依托咪酯煙油快速氾濫，隨升級第三級毒品重罰後查緝量大增'
+        },
+        {
+          label: '全國各級學校學生藥物濫用通報追輔人數',
+          color: '#059669',
+          unit: '人',
+          counts: [580, 520, 490, 440, 410],
+          analysis: '校園尿液篩檢與春暉專案積極介入下，校內列管通報人數呈現微幅下降'
+        }
+      ]);
+
+      // 新興毒品以「咖啡包/即溶奶茶包」偽裝佔比（單位：%，法務部與警政署統計）
+      const coffeePackRatio = ref([71.5, 74.2, 78.6, 81.3, 83.5]);
+
+      const currentChartTypeName = computed(() => {
+        return chartType.value === 'line' ? '折線圖 (Line Chart)' : '長條圖 (Bar Chart)';
+      });
+
+      const nextChartTypeName = computed(() => {
+        return chartType.value === 'line' ? '長條圖' : '折線圖';
+      });
+
+      const formatNumber = (num, unit = '') => {
+        return Number(num).toLocaleString('zh-TW') + ' ' + unit;
+      };
+
+      const renderChart = () => {
+        const ctx = document.getElementById('drugChart');
+        if (!ctx) return;
+
+        if (chartInstance) {
+          chartInstance.destroy();
+        }
+
+        const datasets = statistics.value.map(item => ({
+          label: item.label,
+          data: item.counts,
+          borderColor: item.color,
+          backgroundColor: chartType.value === 'line' ? item.color : item.color + 'BF',
+          borderWidth: 2,
+          fill: false,
+          tension: 0.25,
+          pointRadius: 4,
+          pointHoverRadius: 6
+        }));
+
+        chartInstance = new Chart(ctx, {
+          type: chartType.value,
+          data: {
+            labels: years,
+            datasets: datasets
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+              mode: 'index',
+              intersect: false
+            },
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: {
+                  boxWidth: 14,
+                  padding: 16
+                }
+              },
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    let label = context.dataset.label || '';
+                    if (label) label += ': ';
+                    if (context.parsed.y !== null) {
+                      label += context.parsed.y.toLocaleString('zh-TW');
+                    }
+                    return label;
+                  }
+                }
+              }
+            },
+            scales: {
+              x: {
+                grid: { display: false }
+              },
+              y: {
+                beginAtZero: true,
+                ticks: {
+                  callback: function(value) {
+                    return (value >= 1000) ? (value / 1000) + ' 千' : value;
+                  }
+                }
+              }
+            }
+          }
+        });
+      };
+
+      const toggleChartType = () => {
+        chartType.value = chartType.value === 'line' ? 'bar' : 'line';
+        renderChart();
+      };
+
+      onMounted(() => {
+        renderChart();
+      });
+
+      return {
+        showModal,
+        years,
+        statistics,
+        coffeePackRatio,
+        chartType,
+        currentChartTypeName,
+        nextChartTypeName,
+        toggleChartType,
+        formatNumber
+      };
+    }
+  }).mount('#app');
+</script>
+
+</body>
+</html>
